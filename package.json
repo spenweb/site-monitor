@@ -1,0 +1,22 @@
+{
+  "name": "sws-site-monitor",
+  "version": "0.0.1",
+  "description": "Monitor any website",
+  "author": "Spencer Brown <npm@spencerwebservices.com>",
+  "license": "MIT",
+  "main": "app.js",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "website monitor",
+    "docker",
+    "prisma"
+  ],
+  "dependencies": {
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.10"
+  } 
+}
