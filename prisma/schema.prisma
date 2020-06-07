@@ -120,11 +120,14 @@ model User {
 model WebProperty {
   createdTime    DateTime  @default(now())
   homeUrl        String
+  managedBy      Int
   ownerContactId Int
   updatedTime    DateTime?
   webPropertyId  Int       @default(autoincrement()) @id
   ownerContact   Contact   @relation(fields: [ownerContactId], references: [contactId])
   monitors       Monitor[]
+  manager        User      @relation(fields: [managedBy], references: [userId])
 
+  @@index([managedBy], name: "managedBy")
   @@index([ownerContactId], name: "ownerContactId")
 }
