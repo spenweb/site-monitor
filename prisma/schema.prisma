@@ -16,11 +16,11 @@ model Contact {
   firstName                        String
   lastName                         String?
   phone                            Int?
-  User_Contact_creatorUserIdToUser User           @relation("Contact_creatorUserIdToUser", fields: [creatorUserId], references: [userId])
-  HeartBeat                        HeartBeat[]
-  Notification                     Notification[]
-  User_ContactToUser_contactId     User?          @relation("ContactToUser_contactId")
-  WebProperty                      WebProperty[]
+  creator                          User           @relation("Contact_creatorUserIdToUser", fields: [creatorUserId], references: [userId])
+  heartBeats                       HeartBeat[]
+  notifications                    Notification[]
+  user                             User?          @relation("ContactToUser_contactId")
+  webProperties                    WebProperty[]
 
   @@index([creatorUserId], name: "creatorUserId")
 }
@@ -29,8 +29,8 @@ model Event {
   eventId          Int            @default(autoincrement()) @id
   eventReferenceId Int
   monitorTypeId    Int
-  MonitorType      MonitorType    @relation(fields: [monitorTypeId], references: [monitorTypeId])
-  Notification     Notification[]
+  monitorType      MonitorType    @relation(fields: [monitorTypeId], references: [monitorTypeId])
+  notifications    Notification[]
 
   @@index([monitorTypeId], name: "monitorTypeId")
 }
@@ -41,10 +41,10 @@ model HeartBeat {
   heartBeatId       Int              @default(autoincrement()) @id
   monitorId         Int
   notifyMethodId    Int
-  Contact           Contact          @relation(fields: [contactIdToNotify], references: [contactId])
-  Monitor           Monitor          @relation(fields: [monitorId], references: [monitorId])
-  NotifyMethod      NotifyMethod     @relation(fields: [notifyMethodId], references: [notifyMethodId])
-  HeartBeatEvent    HeartBeatEvent[]
+  contact           Contact          @relation(fields: [contactIdToNotify], references: [contactId])
+  monitor           Monitor          @relation(fields: [monitorId], references: [monitorId])
+  notifyMethod      NotifyMethod     @relation(fields: [notifyMethodId], references: [notifyMethodId])
+  heartBeatEvents   HeartBeatEvent[]
 
   @@index([contactIdToNotify], name: "contactIdToNotify")
   @@index([monitorId], name: "monitorId")
@@ -56,7 +56,7 @@ model HeartBeatEvent {
   heartBeatId      Int
   httpResponseCode Int?
   requestTime      DateTime  @default(now())
-  HeartBeat        HeartBeat @relation(fields: [heartBeatId], references: [heartBeatId])
+  heartBeat        HeartBeat @relation(fields: [heartBeatId], references: [heartBeatId])
 
   @@index([heartBeatId], name: "heartBeatId")
 }
@@ -66,9 +66,9 @@ model Monitor {
   monitorReferenceId Int
   monitorTypeId      Int
   webPropertyId      Int
-  MonitorType        MonitorType @relation(fields: [monitorTypeId], references: [monitorTypeId])
-  WebProperty        WebProperty @relation(fields: [webPropertyId], references: [webPropertyId])
-  HeartBeat          HeartBeat[]
+  monitorType        MonitorType @relation(fields: [monitorTypeId], references: [monitorTypeId])
+  webProperty        WebProperty @relation(fields: [webPropertyId], references: [webPropertyId])
+  heartBeats         HeartBeat[] // Is this needed?
 
   @@index([monitorTypeId], name: "monitorTypeId")
   @@index([webPropertyId], name: "webPropertyId")
@@ -77,8 +77,8 @@ model Monitor {
 model MonitorType {
   monitorTypeId Int       @id
   type          String
-  Event         Event[]
-  Monitor       Monitor[]
+  events        Event[]
+  monitors      Monitor[]
 }
 
 model Notification {
@@ -88,9 +88,9 @@ model Notification {
   notifyMethodId Int
   readTime       DateTime?
   sentTime       DateTime     @default(now())
-  Contact        Contact      @relation(fields: [contactId], references: [contactId])
-  Event          Event        @relation(fields: [eventId], references: [eventId])
-  NotifyMethod   NotifyMethod @relation(fields: [notifyMethodId], references: [notifyMethodId])
+  contact        Contact      @relation(fields: [contactId], references: [contactId])
+  event          Event        @relation(fields: [eventId], references: [eventId])
+  notifyMethod   NotifyMethod @relation(fields: [notifyMethodId], references: [notifyMethodId])
 
   @@index([contactId], name: "contactId")
   @@index([eventId], name: "eventId")
@@ -100,19 +100,19 @@ model Notification {
 model NotifyMethod {
   method         String
   notifyMethodId Int            @id
-  HeartBeat      HeartBeat[]
-  Notification   Notification[]
+  heartBeats     HeartBeat[]
+  notifications  Notification[]
 }
 
 model User {
-  contactId                           Int       @unique
-  createdTime                         DateTime  @default(now())
-  password                            String?
-  updatedTime                         DateTime?
-  userId                              Int       @default(autoincrement()) @id
-  username                            String    @unique
-  Contact_ContactToUser_contactId     Contact   @relation("ContactToUser_contactId", fields: [contactId], references: [contactId])
-  Contact_Contact_creatorUserIdToUser Contact[] @relation("Contact_creatorUserIdToUser")
+  contactId       Int       @unique
+  createdTime     DateTime  @default(now())
+  password        String?
+  updatedTime     DateTime?
+  userId          Int       @default(autoincrement()) @id
+  username        String    @unique
+  contact         Contact   @relation("ContactToUser_contactId", fields: [contactId], references: [contactId])
+  createdContacts Contact[] @relation("Contact_creatorUserIdToUser")
 
   @@index([contactId], name: "contact_index")
 }
@@ -123,8 +123,8 @@ model WebProperty {
   ownerContactId Int
   updatedTime    DateTime?
   webPropertyId  Int       @default(autoincrement()) @id
-  Contact        Contact   @relation(fields: [ownerContactId], references: [contactId])
-  Monitor        Monitor[]
+  ownerContact   Contact   @relation(fields: [ownerContactId], references: [contactId])
+  monitors       Monitor[]
 
   @@index([ownerContactId], name: "ownerContactId")
 }
