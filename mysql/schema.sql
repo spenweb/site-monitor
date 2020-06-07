@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Jun 07, 2020 at 05:20 AM
+-- Generation Time: Jun 07, 2020 at 06:41 PM
 -- Server version: 8.0.20
 -- PHP Version: 7.2.19
 
@@ -138,7 +138,7 @@ CREATE TABLE `User` (
   `userId` int UNSIGNED NOT NULL,
   `username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci NOT NULL,
   `password` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs DEFAULT NULL,
-  `contactId` int UNSIGNED DEFAULT NULL,
+  `contactId` int UNSIGNED NOT NULL,
   `createdTime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedTime` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -226,6 +226,7 @@ ALTER TABLE `NotifyMethod`
 ALTER TABLE `User`
   ADD PRIMARY KEY (`userId`),
   ADD UNIQUE KEY `unique_username` (`username`),
+  ADD UNIQUE KEY `contactId_unique` (`contactId`),
   ADD KEY `contact_index` (`contactId`);
 
 --
@@ -336,7 +337,7 @@ ALTER TABLE `Notification`
 -- Constraints for table `User`
 --
 ALTER TABLE `User`
-  ADD CONSTRAINT `User_ibfk_1` FOREIGN KEY (`contactId`) REFERENCES `Contact` (`contactId`) ON DELETE SET NULL ON UPDATE CASCADE;
+  ADD CONSTRAINT `User_ibfk_1` FOREIGN KEY (`contactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `WebProperty`
