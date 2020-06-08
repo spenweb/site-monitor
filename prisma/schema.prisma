@@ -105,14 +105,15 @@ model NotifyMethod {
 }
 
 model User {
-  contactId       Int       @unique
+  contactId       Int?      @unique
   createdTime     DateTime  @default(now())
   password        String?
   updatedTime     DateTime?
   userId          Int       @default(autoincrement()) @id
   username        String    @unique
-  contact         Contact   @relation("ContactToUser_contactId", fields: [contactId], references: [contactId])
+  contact         Contact?  @relation("ContactToUser_contactId", fields: [contactId], references: [contactId])
   createdContacts Contact[] @relation("Contact_creatorUserIdToUser")
+  webproperties   WebProperty[]
 
   @@index([contactId], name: "contact_index")
 }

@@ -17,10 +17,12 @@ services:
       - "8080:8080"
     volumes:
       - .:/home/node/app
-      - node_modules:/home/node/app/node_modules
+      - ./node_modules/:/home/node/app/node_modules/
     networks:
       - app-network
-    command: ./wait-for.sh mysql:3306 -- /home/node/app/node_modules/.bin/nodemon app.js
+    command: >
+      sh -c "npm install && npx prisma generate && ./wait-for.sh mysql:3306 -- /home/node/app/node_modules/.bin/nodemon app.js
+      && node app.js"
 
   mysql:
     build:
@@ -64,4 +66,3 @@ networks:
 
 volumes:
   dbdata:
-  node_modules: 

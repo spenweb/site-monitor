@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Jun 07, 2020 at 06:41 PM
+-- Generation Time: Jun 08, 2020 at 03:10 AM
 -- Server version: 8.0.20
 -- PHP Version: 7.2.19
 
@@ -138,7 +138,7 @@ CREATE TABLE `User` (
   `userId` int UNSIGNED NOT NULL,
   `username` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci NOT NULL,
   `password` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs DEFAULT NULL,
-  `contactId` int UNSIGNED NOT NULL,
+  `contactId` int UNSIGNED DEFAULT NULL,
   `createdTime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedTime` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -151,8 +151,9 @@ CREATE TABLE `User` (
 
 CREATE TABLE `WebProperty` (
   `webPropertyId` int UNSIGNED NOT NULL,
-  `homeUrl` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NOT NULL,
+  `managedBy` int UNSIGNED NOT NULL,
   `ownerContactId` int UNSIGNED NOT NULL,
+  `homeUrl` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NOT NULL,
   `createdTime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedTime` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -234,7 +235,8 @@ ALTER TABLE `User`
 --
 ALTER TABLE `WebProperty`
   ADD PRIMARY KEY (`webPropertyId`),
-  ADD KEY `ownerContactId` (`ownerContactId`);
+  ADD KEY `ownerContactId` (`ownerContactId`),
+  ADD KEY `managedBy` (`managedBy`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -343,7 +345,8 @@ ALTER TABLE `User`
 -- Constraints for table `WebProperty`
 --
 ALTER TABLE `WebProperty`
-  ADD CONSTRAINT `WebProperty_ibfk_1` FOREIGN KEY (`ownerContactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `WebProperty_ibfk_1` FOREIGN KEY (`ownerContactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `WebProperty_ibfk_2` FOREIGN KEY (`managedBy`) REFERENCES `User` (`userId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
