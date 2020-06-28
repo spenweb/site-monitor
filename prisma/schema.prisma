@@ -8,127 +8,149 @@ datasource db {
 }
 
 model Contact {
-  changedTime                      DateTime?
   contactId                        Int            @default(autoincrement()) @id
   createdTime                      DateTime       @default(now())
   creatorUserId                    Int
   email                            String?
-  firstName                        String
-  lastName                         String?
+  familyName                       String?
+  givenName                        String
   phone                            Int?
-  creator                          User           @relation("Contact_creatorUserIdToUser", fields: [creatorUserId], references: [userId])
-  heartBeats                       HeartBeat[]
+  updatedTime                      DateTime?
+  creator                          User                     @relation("Contact_creatorUserIdToUser", fields: [creatorUserId], references: [userId])
+  listeners                        Listener[]
   notifications                    Notification[]
   user                             User?          @relation("ContactToUser_contactId")
-  webProperties                    WebProperty[]
+  webproperties                    WebProperty[]
 
   @@index([creatorUserId], name: "creatorUserId")
 }
 
 model Event {
-  eventId          Int            @default(autoincrement()) @id
-  eventReferenceId Int
-  monitorTypeId    Int
-  monitorType      MonitorType    @relation(fields: [monitorTypeId], references: [monitorTypeId])
-  notifications    Notification[]
+  eventId         Int              @default(autoincrement()) @id
+  monitorId       Int
+  notificationId  Int?
+  monitor         Monitor          @relation(fields: [monitorId], references: [monitorId])
+  notification    Notification?    @relation(fields: [notificationId], references: [notificationId])
+  heartBeatEvents HeartBeatEvent[]
 
-  @@index([monitorTypeId], name: "monitorTypeId")
+  @@index([monitorId], name: "monitorTypeId")
+  @@index([notificationId], name: "notificationId")
 }
 
 model HeartBeat {
-  contactIdToNotify Int
-  frequency         Int              @default(0)
-  heartBeatId       Int              @default(autoincrement()) @id
-  monitorId         Int
-  notifyMethodId    Int
-  contact           Contact          @relation(fields: [contactIdToNotify], references: [contactId])
-  monitor           Monitor          @relation(fields: [monitorId], references: [monitorId])
-  notifyMethod      NotifyMethod     @relation(fields: [notifyMethodId], references: [notifyMethodId])
-  heartBeatEvents   HeartBeatEvent[]
+  frequency   Int     @default(0)
+  heartBeatId Int     @default(autoincrement()) @id
+  monitorId   Int
+  monitor     Monitor @relation(fields: [monitorId], references: [monitorId])
 
-  @@index([contactIdToNotify], name: "contactIdToNotify")
   @@index([monitorId], name: "monitorId")
-  @@index([notifyMethodId], name: "notifyMethodId")
 }
 
 model HeartBeatEvent {
-  heartBeatEventId Int       @default(autoincrement()) @id
-  heartBeatId      Int
+  eventId          Int
+  heartBeatEventId Int      @default(autoincrement()) @id
   httpResponseCode Int?
-  requestTime      DateTime  @default(now())
-  heartBeat        HeartBeat @relation(fields: [heartBeatId], references: [heartBeatId])
+  requestTime      DateTime @default(now())
+  responseTime     Float?
+  event            Event    @relation(fields: [eventId], references: [eventId])
 
-  @@index([heartBeatId], name: "heartBeatId")
+  @@index([eventId], name: "eventId")
+}
+
+model Listener {
+  contactId            Int
+  listenerId           Int                @default(autoincrement()) @id
+  monitorId            Int
+  notificationMethodId Int
+  contact              Contact            @relation(fields: [contactId], references: [contactId])
+  monitor              Monitor            @relation(fields: [monitorId], references: [monitorId])
+  notificationMethod   NotificationMethod @relation(fields: [notificationMethodId], references: [notificationMethodId])
+
+  @@index([contactId], name: "contactId")
+  @@index([monitorId], name: "monitorId")
+  @@index([notificationMethodId], name: "notificationMethodId")
 }
 
 model Monitor {
-  monitorId          Int         @default(autoincrement()) @id
-  monitorReferenceId Int
-  monitorTypeId      Int
-  webPropertyId      Int
-  monitorType        MonitorType @relation(fields: [monitorTypeId], references: [monitorTypeId])
-  webProperty        WebProperty @relation(fields: [webPropertyId], references: [webPropertyId])
-  heartBeats         HeartBeat[] // Is this needed?
+  monitorId     Int         @default(autoincrement()) @id
+  monitorTypeId Int
+  webPropertyId Int
+  monitorType   MonitorType @relation(fields: [monitorTypeId], references: [monitorTypeId])
+  webProperty   WebProperty @relation(fields: [webPropertyId], references: [webPropertyId])
+  events        Event[]
+  heartBeats    HeartBeat[]
+  listeners     Listener[]
 
   @@index([monitorTypeId], name: "monitorTypeId")
   @@index([webPropertyId], name: "webPropertyId")
 }
 
 model MonitorType {
-  monitorTypeId Int       @id
-  type          String
-  events        Event[]
-  monitors      Monitor[]
+  defaultNotificationMethodId Int
+  monitorTypeId               Int                @id
+  typeName                    String
+  defaultNotificationMethod   NotificationMethod @relation(fields: [defaultNotificationMethodId], references: [notificationMethodId])
+  monitors                    Monitor[]
+
+  @@index([defaultNotificationMethodId], name: "defaultNotificationMethod")
 }
 
 model Notification {
-  contactId      Int
-  eventId        Int
-  notificationId Int          @default(autoincrement()) @id
-  notifyMethodId Int
-  readTime       DateTime?
-  sentTime       DateTime     @default(now())
-  contact        Contact      @relation(fields: [contactId], references: [contactId])
-  event          Event        @relation(fields: [eventId], references: [eventId])
-  notifyMethod   NotifyMethod @relation(fields: [notifyMethodId], references: [notifyMethodId])
+  contactId           Int
+  contentId           Int
+  methodId            Int
+  notificationId      Int                 @default(autoincrement()) @id
+  readTime            DateTime?
+  sentTime            DateTime            @default(now())
+  contact             Contact             @relation(fields: [contactId], references: [contactId])
+  notificationContent NotificationContent @relation(fields: [contentId], references: [notificationContentId])
+  notificationMethod  NotificationMethod  @relation(fields: [methodId], references: [notificationMethodId])
+  events              Event[]
 
   @@index([contactId], name: "contactId")
-  @@index([eventId], name: "eventId")
-  @@index([notifyMethodId], name: "notifyMethodId")
+  @@index([contentId], name: "contentId")
+  @@index([methodId], name: "methodId")
 }
 
-model NotifyMethod {
-  method         String
-  notifyMethodId Int            @id
-  heartBeats     HeartBeat[]
-  notifications  Notification[]
+model NotificationContent {
+  notificationContentId Int            @default(autoincrement()) @id
+  reason                String
+  notifications         Notification[]
+}
+
+model NotificationMethod {
+  methodName           String
+  notificationMethodId Int            @id
+  sisteners            Listener[]
+  monitorTypes         MonitorType[]
+  notifications        Notification[]
 }
 
 model User {
-  contactId       Int?      @unique
-  createdTime     DateTime  @default(now())
-  password        String?
-  updatedTime     DateTime?
-  userId          Int       @default(autoincrement()) @id
-  username        String    @unique
-  contact         Contact?  @relation("ContactToUser_contactId", fields: [contactId], references: [contactId])
-  createdContacts Contact[] @relation("Contact_creatorUserIdToUser")
-  webproperties   WebProperty[]
+  contactId                           Int?          @unique
+  createdTime                         DateTime      @default(now())
+  password                            String?
+  updatedTime                         DateTime?
+  userId                              Int           @default(autoincrement()) @id
+  username                            String        @unique
+  contact                             Contact?      @relation("ContactToUser_contactId", fields: [contactId], references: [contactId])
+  createdContacts                     Contact[]     @relation("Contact_creatorUserIdToUser")
+  webProperties                       WebProperty[]
 
   @@index([contactId], name: "contact_index")
 }
 
 model WebProperty {
-  createdTime    DateTime  @default(now())
-  homeUrl        String
-  managedBy      Int
-  ownerContactId Int
-  updatedTime    DateTime?
-  webPropertyId  Int       @default(autoincrement()) @id
-  ownerContact   Contact   @relation(fields: [ownerContactId], references: [contactId])
-  monitors       Monitor[]
-  manager        User      @relation(fields: [managedBy], references: [userId])
+  createdTime     DateTime  @default(now())
+  homeUrl         String
+  managerUserId   Int
+  ownerContactId  Int
+  updatedTime     DateTime?
+  webPropertyId   Int       @default(autoincrement()) @id
+  manager         User      @relation(fields: [managerUserId], references: [userId])
+  owner           Contact   @relation(fields: [ownerContactId], references: [contactId])
+  monitors        Monitor[]
 
-  @@index([managedBy], name: "managedBy")
+  @@index([managerUserId], name: "managedBy")
   @@index([ownerContactId], name: "ownerContactId")
 }

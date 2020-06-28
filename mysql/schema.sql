@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mysql
--- Generation Time: Jun 08, 2020 at 03:10 AM
+-- Generation Time: Jun 28, 2020 at 08:37 AM
 -- Server version: 8.0.20
 -- PHP Version: 7.2.19
 
@@ -30,13 +30,13 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `Contact` (
   `contactId` int UNSIGNED NOT NULL,
-  `firstName` varchar(255) NOT NULL,
-  `lastName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+  `givenName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+  `familyName` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_ci DEFAULT NULL,
   `phone` int UNSIGNED DEFAULT NULL,
   `creatorUserId` int UNSIGNED NOT NULL COMMENT 'the user that created this contact record',
   `createdTime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `changedTime` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+  `updatedTime` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -47,8 +47,8 @@ CREATE TABLE `Contact` (
 
 CREATE TABLE `Event` (
   `eventId` int UNSIGNED NOT NULL,
-  `monitorTypeId` int UNSIGNED NOT NULL,
-  `eventReferenceId` int UNSIGNED NOT NULL COMMENT 'Id of specific event type instance (e.g. HeartBeatEvent)	'
+  `monitorId` int UNSIGNED NOT NULL,
+  `notificationId` int UNSIGNED DEFAULT NULL COMMENT 'If the event triggered a notification'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -60,9 +60,7 @@ CREATE TABLE `Event` (
 CREATE TABLE `HeartBeat` (
   `heartBeatId` int UNSIGNED NOT NULL,
   `monitorId` int UNSIGNED NOT NULL,
-  `frequency` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '(seconds)',
-  `contactIdToNotify` int UNSIGNED NOT NULL,
-  `notifyMethodId` int UNSIGNED NOT NULL
+  `frequency` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '(seconds)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -73,10 +71,24 @@ CREATE TABLE `HeartBeat` (
 
 CREATE TABLE `HeartBeatEvent` (
   `heartBeatEventId` int UNSIGNED NOT NULL,
-  `heartBeatId` int UNSIGNED NOT NULL,
+  `eventId` int UNSIGNED NOT NULL,
   `requestTime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'when the request was made',
+  `responseTime` double DEFAULT NULL COMMENT 'Amount of milliseconds',
   `httpResponseCode` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `Listener`
+--
+
+CREATE TABLE `Listener` (
+  `listenerId` int UNSIGNED NOT NULL,
+  `contactId` int UNSIGNED NOT NULL,
+  `monitorId` int UNSIGNED NOT NULL,
+  `notificationMethodId` int UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='Contact listening to monitor with a notification method';
 
 -- --------------------------------------------------------
 
@@ -87,8 +99,7 @@ CREATE TABLE `HeartBeatEvent` (
 CREATE TABLE `Monitor` (
   `monitorId` int UNSIGNED NOT NULL,
   `webPropertyId` int UNSIGNED NOT NULL,
-  `monitorTypeId` int UNSIGNED NOT NULL,
-  `monitorReferenceId` int UNSIGNED NOT NULL COMMENT 'Id of specific monitor type instance (e.g. HeartBeat)'
+  `monitorTypeId` int UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='A monitor for a particular web property';
 
 -- --------------------------------------------------------
@@ -99,7 +110,8 @@ CREATE TABLE `Monitor` (
 
 CREATE TABLE `MonitorType` (
   `monitorTypeId` int UNSIGNED NOT NULL,
-  `type` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NOT NULL
+  `typeName` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NOT NULL,
+  `defaultNotificationMethodId` int UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -110,22 +122,33 @@ CREATE TABLE `MonitorType` (
 
 CREATE TABLE `Notification` (
   `notificationId` int UNSIGNED NOT NULL,
-  `eventId` int UNSIGNED NOT NULL,
+  `contentId` int UNSIGNED NOT NULL,
+  `methodId` int UNSIGNED NOT NULL,
   `contactId` int UNSIGNED NOT NULL,
-  `notifyMethodId` int UNSIGNED NOT NULL,
   `sentTime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `readTime` datetime DEFAULT NULL COMMENT 'Time contact read the notification'
+  `readTime` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `NotifyMethod`
+-- Table structure for table `NotificationContent`
 --
 
-CREATE TABLE `NotifyMethod` (
-  `notifyMethodId` int UNSIGNED NOT NULL,
-  `method` varchar(64) NOT NULL
+CREATE TABLE `NotificationContent` (
+  `notificationContentId` int UNSIGNED NOT NULL,
+  `reason` varchar(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT 'Reason notification is being sent'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `NotificationMethod`
+--
+
+CREATE TABLE `NotificationMethod` (
+  `notificationMethodId` int UNSIGNED NOT NULL,
+  `methodName` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -151,7 +174,7 @@ CREATE TABLE `User` (
 
 CREATE TABLE `WebProperty` (
   `webPropertyId` int UNSIGNED NOT NULL,
-  `managedBy` int UNSIGNED NOT NULL,
+  `managerUserId` int UNSIGNED NOT NULL,
   `ownerContactId` int UNSIGNED NOT NULL,
   `homeUrl` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs NOT NULL,
   `createdTime` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -174,23 +197,31 @@ ALTER TABLE `Contact`
 --
 ALTER TABLE `Event`
   ADD PRIMARY KEY (`eventId`),
-  ADD KEY `monitorTypeId` (`monitorTypeId`);
+  ADD KEY `monitorTypeId` (`monitorId`),
+  ADD KEY `notificationId` (`notificationId`);
 
 --
 -- Indexes for table `HeartBeat`
 --
 ALTER TABLE `HeartBeat`
   ADD PRIMARY KEY (`heartBeatId`),
-  ADD KEY `monitorId` (`monitorId`),
-  ADD KEY `contactIdToNotify` (`contactIdToNotify`),
-  ADD KEY `notifyMethodId` (`notifyMethodId`);
+  ADD KEY `monitorId` (`monitorId`);
 
 --
 -- Indexes for table `HeartBeatEvent`
 --
 ALTER TABLE `HeartBeatEvent`
   ADD PRIMARY KEY (`heartBeatEventId`),
-  ADD KEY `heartBeatId` (`heartBeatId`);
+  ADD KEY `eventId` (`eventId`);
+
+--
+-- Indexes for table `Listener`
+--
+ALTER TABLE `Listener`
+  ADD PRIMARY KEY (`listenerId`),
+  ADD KEY `contactId` (`contactId`),
+  ADD KEY `monitorId` (`monitorId`),
+  ADD KEY `notificationMethodId` (`notificationMethodId`);
 
 --
 -- Indexes for table `Monitor`
@@ -204,22 +235,29 @@ ALTER TABLE `Monitor`
 -- Indexes for table `MonitorType`
 --
 ALTER TABLE `MonitorType`
-  ADD PRIMARY KEY (`monitorTypeId`);
+  ADD PRIMARY KEY (`monitorTypeId`),
+  ADD KEY `defaultNotificationMethod` (`defaultNotificationMethodId`);
 
 --
 -- Indexes for table `Notification`
 --
 ALTER TABLE `Notification`
   ADD PRIMARY KEY (`notificationId`),
-  ADD KEY `eventId` (`eventId`),
   ADD KEY `contactId` (`contactId`),
-  ADD KEY `notifyMethodId` (`notifyMethodId`);
+  ADD KEY `contentId` (`contentId`),
+  ADD KEY `methodId` (`methodId`);
 
 --
--- Indexes for table `NotifyMethod`
+-- Indexes for table `NotificationContent`
 --
-ALTER TABLE `NotifyMethod`
-  ADD PRIMARY KEY (`notifyMethodId`);
+ALTER TABLE `NotificationContent`
+  ADD PRIMARY KEY (`notificationContentId`);
+
+--
+-- Indexes for table `NotificationMethod`
+--
+ALTER TABLE `NotificationMethod`
+  ADD PRIMARY KEY (`notificationMethodId`);
 
 --
 -- Indexes for table `User`
@@ -236,7 +274,7 @@ ALTER TABLE `User`
 ALTER TABLE `WebProperty`
   ADD PRIMARY KEY (`webPropertyId`),
   ADD KEY `ownerContactId` (`ownerContactId`),
-  ADD KEY `managedBy` (`managedBy`);
+  ADD KEY `managedBy` (`managerUserId`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -267,6 +305,12 @@ ALTER TABLE `HeartBeatEvent`
   MODIFY `heartBeatEventId` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `Listener`
+--
+ALTER TABLE `Listener`
+  MODIFY `listenerId` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `Monitor`
 --
 ALTER TABLE `Monitor`
@@ -277,6 +321,12 @@ ALTER TABLE `Monitor`
 --
 ALTER TABLE `Notification`
   MODIFY `notificationId` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `NotificationContent`
+--
+ALTER TABLE `NotificationContent`
+  MODIFY `notificationContentId` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `User`
@@ -304,21 +354,28 @@ ALTER TABLE `Contact`
 -- Constraints for table `Event`
 --
 ALTER TABLE `Event`
-  ADD CONSTRAINT `Event_ibfk_1` FOREIGN KEY (`monitorTypeId`) REFERENCES `MonitorType` (`monitorTypeId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `Event_ibfk_1` FOREIGN KEY (`monitorId`) REFERENCES `Monitor` (`monitorId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `Event_ibfk_2` FOREIGN KEY (`notificationId`) REFERENCES `Notification` (`notificationId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `HeartBeat`
 --
 ALTER TABLE `HeartBeat`
-  ADD CONSTRAINT `HeartBeat_ibfk_1` FOREIGN KEY (`monitorId`) REFERENCES `Monitor` (`monitorId`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `HeartBeat_ibfk_2` FOREIGN KEY (`contactIdToNotify`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `HeartBeat_ibfk_3` FOREIGN KEY (`notifyMethodId`) REFERENCES `NotifyMethod` (`notifyMethodId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `HeartBeat_ibfk_1` FOREIGN KEY (`monitorId`) REFERENCES `Monitor` (`monitorId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `HeartBeatEvent`
 --
 ALTER TABLE `HeartBeatEvent`
-  ADD CONSTRAINT `HeartBeatEvent_ibfk_1` FOREIGN KEY (`heartBeatId`) REFERENCES `HeartBeat` (`heartBeatId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `HeartBeatEvent_ibfk_1` FOREIGN KEY (`eventId`) REFERENCES `Event` (`eventId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+--
+-- Constraints for table `Listener`
+--
+ALTER TABLE `Listener`
+  ADD CONSTRAINT `Listener_ibfk_1` FOREIGN KEY (`contactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `Listener_ibfk_2` FOREIGN KEY (`monitorId`) REFERENCES `Monitor` (`monitorId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `Listener_ibfk_3` FOREIGN KEY (`notificationMethodId`) REFERENCES `NotificationMethod` (`notificationMethodId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `Monitor`
@@ -328,12 +385,18 @@ ALTER TABLE `Monitor`
   ADD CONSTRAINT `Monitor_ibfk_2` FOREIGN KEY (`monitorTypeId`) REFERENCES `MonitorType` (`monitorTypeId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
+-- Constraints for table `MonitorType`
+--
+ALTER TABLE `MonitorType`
+  ADD CONSTRAINT `MonitorType_ibfk_1` FOREIGN KEY (`defaultNotificationMethodId`) REFERENCES `NotificationMethod` (`notificationMethodId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+--
 -- Constraints for table `Notification`
 --
 ALTER TABLE `Notification`
-  ADD CONSTRAINT `Notification_ibfk_1` FOREIGN KEY (`eventId`) REFERENCES `Event` (`eventId`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `Notification_ibfk_2` FOREIGN KEY (`contactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `Notification_ibfk_3` FOREIGN KEY (`notifyMethodId`) REFERENCES `NotifyMethod` (`notifyMethodId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `Notification_ibfk_1` FOREIGN KEY (`contactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `Notification_ibfk_2` FOREIGN KEY (`contentId`) REFERENCES `NotificationContent` (`notificationContentId`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  ADD CONSTRAINT `Notification_ibfk_3` FOREIGN KEY (`methodId`) REFERENCES `NotificationMethod` (`notificationMethodId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 --
 -- Constraints for table `User`
@@ -346,7 +409,7 @@ ALTER TABLE `User`
 --
 ALTER TABLE `WebProperty`
   ADD CONSTRAINT `WebProperty_ibfk_1` FOREIGN KEY (`ownerContactId`) REFERENCES `Contact` (`contactId`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  ADD CONSTRAINT `WebProperty_ibfk_2` FOREIGN KEY (`managedBy`) REFERENCES `User` (`userId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+  ADD CONSTRAINT `WebProperty_ibfk_2` FOREIGN KEY (`managerUserId`) REFERENCES `User` (`userId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
