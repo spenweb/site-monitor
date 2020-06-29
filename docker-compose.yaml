@@ -22,8 +22,7 @@ services:
     networks:
       - app-network
     command: >
-      sh -c "npm install && ./wait-for.sh mysql:3306 -- /home/node/app/node_modules/.bin/nodemon src/app.js
-      && node app.js"
+      sh -c "npm install && ./wait-for.sh mysql:3306 -- npm run dev"
 
   mysql:
     build:
